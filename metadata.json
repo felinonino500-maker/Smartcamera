@@ -1,0 +1,5 @@
+{
+  "name": "ESP Portal — Serial & Firmware",
+  "description": "ESP Portal — serial monitor dan firmware flasher ESP8266/ESP32.",
+  "requestFramePermissions": []
+}
