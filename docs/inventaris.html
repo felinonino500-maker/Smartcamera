@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1e40af" />
+  <title>Inventaris Kamera, GPS & Firestore</title>
+  <style>
+    :root {
+      --primary: #1e40af;
+      --primary-light: #3b82f6;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #cbd5e1;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --purple: #7c3aed;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); line-height: 1.5; padding-bottom: 60px; }
+
+    header {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: white;
+      padding: 14px 18px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    header p { font-size: 0.78rem; opacity: 0.9; margin-top: 2px; }
+
+    .net-pill {
+      font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 99px;
+      background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; gap: 5px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot-online { background: #4ade80; }
+    .dot-offline { background: #f87171; }
+
+    .container { max-width: 960px; margin: 14px auto; padding: 0 14px; }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .card-title { font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: var(--primary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+    /* Sync Panel */
+    .sync-card {
+      background: linear-gradient(to right, #eff6ff, #f8fafc);
+      border: 1px solid #bfdbfe;
+    }
+    .sync-info { font-size: 0.84rem; color: #1e3a8a; margin-bottom: 10px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+    .sync-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    @media (max-width: 600px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 0.82rem; font-weight: 600; color: #334155; margin-bottom: 4px; }
+    input, select, textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.92rem; background: #fff; color: var(--text);
+    }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary-light); border-color: transparent; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 9px 14px; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; transition: 0.2s; text-decoration: none;
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-purple { background: var(--purple); color: white; }
+    .btn-outline { background: #fff; color: var(--text); border: 1px solid var(--border); }
+    .btn-sm { padding: 6px 10px; font-size: 0.78rem; }
+    .btn-block { width: 100%; }
+
+    .gps-box {
+      background: #f8fafc; border: 1px dashed var(--border); border-radius: 8px; padding: 10px; margin-bottom: 12px;
+    }
+    .gps-status { font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+
+    .camera-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .camera-actions > * { flex: 1; min-width: 140px; }
+
+    .preview-box {
+      position: relative; border-radius: 10px; overflow: hidden; border: 2px dashed var(--border);
+      background: #f8fafc; min-height: 150px; display: flex; align-items: center; justify-content: center;
+      text-align: center; color: var(--muted); font-size: 0.85rem;
+    }
+    .preview-box img { width: 100%; max-height: 320px; object-fit: contain; display: block; background: #0f172a; }
+    .btn-remove-photo {
+      position: absolute; top: 8px; right: 8px; background: rgba(220,38,38,0.9); color: #fff;
+      border: none; border-radius: 6px; padding: 5px 10px; font-size: 0.78rem; cursor: pointer;
+    }
+
+    .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+    @media (max-width: 600px) { .stats-bar { grid-template-columns: repeat(2, 1fr); } }
+    .stat-item { background: white; padding: 10px; border-radius: 10px; text-align: center; border: 1px solid #e2e8f0; }
+    .stat-num { font-size: 1.25rem; font-weight: 800; color: var(--primary); }
+    .stat-lbl { font-size: 0.74rem; color: var(--muted); }
+
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .toolbar input, .toolbar select { flex: 1; min-width: 140px; }
+
+    .item-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .inv-card {
+      background: white; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden;
+      display: flex; flex-direction: column; position: relative;
+    }
+    .inv-img { width: 100%; height: 190px; object-fit: cover; background: #0f172a; cursor: pointer; }
+    .sync-badge {
+      position: absolute; top: 8px; left: 8px; padding: 3px 8px; border-radius: 6px;
+      font-size: 0.72rem; font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .sync-yes { background: #16a34a; color: white; }
+    .sync-no { background: #f59e0b; color: #1e293b; }
+
+    .inv-body { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .inv-loc {
+      display: inline-block; background: #dbeafe; color: #1e40af; font-size: 0.75rem;
+      font-weight: 700; padding: 2px 8px; border-radius: 99px; align-self: flex-start;
+    }
+    .inv-title { font-weight: 700; font-size: 1rem; }
+    .inv-meta { font-size: 0.8rem; color: var(--muted); }
+    .badge { padding: 2px 7px; border-radius: 6px; font-size: 0.73rem; font-weight: 700; }
+    .badge-baik { background: #dcfce7; color: #166534; }
+    .badge-ringan { background: #fef3c7; color: #92400e; }
+    .badge-berat { background: #fee2e2; color: #991b1b; }
+    .badge-hilang { background: #e2e8f0; color: #334155; }
+
+    .inv-actions { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid #f1f5f9; background: #f8fafc; flex-wrap: wrap; }
+
+    /* Modal */
+    .modal {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 100;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: #1e293b; color: white; border-radius: 12px; max-width: 600px; width: 100%;
+      overflow: hidden; display: flex; flex-direction: column; max-height: 92vh;
+    }
+    .modal-light { background: #ffffff; color: var(--text); padding: 18px; overflow-y: auto; }
+    .modal-content video, .modal-content img { width: 100%; max-height: 70vh; object-fit: contain; background: black; }
+    .modal-footer { padding: 12px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; background: #0f172a; }
+
+    .helper-box {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;
+      font-size: 0.78rem; color: #475569; margin-bottom: 12px;
+    }
+    code { background: #e2e8f0; padding: 1px 4px; border-radius: 4px; font-family: monospace; }
+
+    .print-only { display: none; }
+    @media print {
+      body { background: white; padding: 0; }
+      header, .sync-card, #formCard, .stats-bar, .toolbar, .export-bar, .inv-actions, .sync-badge, .modal { display: none !important; }
+      .print-only { display: block; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 8px; }
+      .container { max-width: 100%; margin: 0; padding: 0; }
+      .card { border: none; box-shadow: none; padding: 0; }
+      .item-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .inv-card { break-inside: avoid; border: 1px solid #94a3b8; }
+      .inv-img { height: 170px; object-fit: contain; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📷 Inventaris Kamera & Firestore</h1>
+    <p>Simpan di Internal Storage saat dipakai & kirim ke Firestore kapan saja</p>
+  </div>
+  <div class="net-pill" id="netPill">
+    <span class="dot dot-online" id="netDot"></span>
+    <span id="netText">Online</span>
+  </div>
+</header>
+
+<div class="container">
+  <div class="print-only">
+    <h2>Laporan Inventaris Barang</h2>
+    <p id="printMeta" style="font-size: 0.85rem; color: #334155;"></p>
+  </div>
+
+  <!-- Panel Sinkronisasi Firestore & Internal Storage -->
+  <div class="card sync-card">
+    <div class="card-title" style="margin-bottom:8px;">
+      <span>☁️ Sinkronisasi Firestore & Memori Internal</span>
+      <button type="button" class="btn btn-outline btn-sm" id="btnOpenFsSettings">⚙️ Pengaturan Firestore</button>
+    </div>
+    <div class="sync-info">
+      <span id="fsStatusLabel">🔌 Firestore belum diatur (data tetap aman di Internal Storage)</span>
+      <span id="storageEstimate">💾 Memori Internal aktif</span>
+    </div>
+    <div class="sync-actions">
+      <button type="button" class="btn btn-purple" id="btnSyncNow">
+        ☁️ Kirim ke Firestore (<span id="btnUnsyncedCount">0</span>)
+      </button>
+      <button type="button" class="btn btn-outline" id="btnPullFirestore">
+        ⬇️ Tarik Data dari Firestore
+      </button>
+    </div>
+  </div>
+
+  <!-- Statistik -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-num" id="statTotalItems">0</div>
+      <div class="stat-lbl">Jenis Barang</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="statTotalQty">0</div>
+      <div class="stat-lbl">Total Unit</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="statTotalLoc">0</div>
+      <div class="stat-lbl">Jumlah Lokasi</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="statUnsynced" style="color: var(--warning);">0</div>
+      <div class="stat-lbl">Belum Terkirim</div>
+    </div>
+  </div>
+
+  <!-- Form Input -->
+  <div class="card" id="formCard">
+    <div class="card-title">
+      <span id="formTitle">➕ Catat Barang Inventaris</span>
+      <button type="button" class="btn btn-outline btn-sm" id="btnCancelEdit" style="display:none;" onclick="resetForm()">Batal Edit</button>
+    </div>
+
+    <form id="inventoryForm">
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="inputLocation">Lokasi / Ruangan / Cabang *</label>
+          <input type="text" id="inputLocation" list="locationSuggestions" placeholder="Contoh: Gudang A / Ruang Server" required />
+          <datalist id="locationSuggestions"></datalist>
+        </div>
+        <div class="form-group">
+          <label for="inputDate">Tanggal & Waktu *</label>
+          <input type="datetime-local" id="inputDate" required />
+        </div>
+      </div>
+
+      <div class="gps-box">
+        <div class="gps-status">
+          <span id="gpsStatus">📍 Mendeteksi lokasi GPS...</span>
+          <div style="display:flex; gap:6px;">
+            <a id="gpsLink" href="#" target="_blank" class="btn btn-outline btn-sm" style="display:none;">🗺️ Cek Maps</a>
+            <button type="button" class="btn btn-outline btn-sm" id="btnGetGps">🔄 Ambil GPS</button>
+          </div>
+        </div>
+        <div class="grid-2">
+          <input type="text" id="inputLat" placeholder="Latitude (contoh: -6.2088)" />
+          <input type="text" id="inputLng" placeholder="Longitude (contoh: 106.8456)" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Foto Barang (Auto-Watermark & Kompresi Hemat Storage)</label>
+        <div class="camera-actions">
+          <button type="button" class="btn btn-primary" id="btnOpenCamera">📷 Kamera Langsung</button>
+          <label class="btn btn-outline" style="margin:0; cursor:pointer;">
+            📁 Kamera HP / Galeri
+            <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none;" />
+          </label>
+        </div>
+        <div class="preview-box" id="photoPreviewContainer">
+          <span id="photoPlaceholder">Belum ada foto. Ambil foto barang di atas.</span>
+          <img id="photoPreview" style="display:none;" alt="Preview Foto" />
+          <button type="button" class="btn-remove-photo" id="btnClearPhoto" style="display:none;">✕ Hapus Foto</button>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="inputCode">Kode Barang / SKU</label>
+          <input type="text" id="inputCode" placeholder="Contoh: INV-2026-001" />
+        </div>
+        <div class="form-group">
+          <label for="inputName">Nama Barang *</label>
+          <input type="text" id="inputName" placeholder="Contoh: Laptop Dell Latitude" required />
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="form-group">
+          <label for="inputCategory">Kategori</label>
+          <select id="inputCategory">
+            <option value="Elektronik">Elektronik / IT</option>
+            <option value="Furnitur">Furnitur / Mebel</option>
+            <option value="Mesin & Alat">Mesin & Peralatan</option>
+            <option value="Kendaraan">Kendaraan</option>
+            <option value="ATK & Lainnya">ATK & Lainnya</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="inputQty">Jumlah *</label>
+          <div style="display:flex; gap:6px;">
+            <input type="number" id="inputQty" value="1" min="1" required style="width:85px;" />
+            <input type="text" id="inputUnit" value="Unit" placeholder="Satuan" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="inputCondition">Kondisi</label>
+          <select id="inputCondition">
+            <option value="Baik">Baik</option>
+            <option value="Rusak Ringan">Rusak Ringan</option>
+            <option value="Rusak Berat">Rusak Berat</option>
+            <option value="Hilang">Hilang</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="inputNotes">Catatan / Keterangan Tambahan</label>
+        <textarea id="inputNotes" rows="2" placeholder="Contoh: Nomor seri, penanggung jawab, atau detail kerusakan"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-success btn-block" id="btnSave">💾 Simpan ke Internal Storage</button>
+    </form>
+  </div>
+
+  <!-- Daftar Data & Filter -->
+  <div class="card">
+    <div class="card-title">
+      <span>📋 Daftar Barang (Internal Storage)</span>
+      <div class="export-bar" style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-success btn-sm" id="btnExportCsv">📊 Ekspor Excel (CSV)</button>
+        <button type="button" class="btn btn-primary btn-sm" id="btnPrintPdf">🖨️ Cetak / PDF</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <select id="filterLocation">
+        <option value="">📍 Semua Lokasi</option>
+      </select>
+      <select id="filterSync">
+        <option value="">☁️ Semua Status Sync</option>
+        <option value="unsynced">🟡 Belum Terkirim</option>
+        <option value="synced">🟢 Sudah di Firestore</option>
+      </select>
+      <select id="filterCondition">
+        <option value="">🏷️ Semua Kondisi</option>
+        <option value="Baik">Baik</option>
+        <option value="Rusak Ringan">Rusak Ringan</option>
+        <option value="Rusak Berat">Rusak Berat</option>
+        <option value="Hilang">Hilang</option>
+      </select>
+      <input type="text" id="searchInput" placeholder="🔍 Cari nama, kode, catatan..." />
+    </div>
+
+    <div class="item-list" id="inventoryList"></div>
+
+    <div style="margin-top: 16px; text-align: right;" class="export-bar">
+      <button type="button" class="btn btn-outline btn-sm" id="btnResetAll" style="color:var(--danger); border-color:#fecaca;">🗑️ Bersihkan Internal Storage</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Pengaturan Firestore -->
+<div class="modal" id="fsSettingsModal">
+  <div class="modal-content modal-light">
+    <h3 style="margin-bottom:10px; color:var(--primary);">⚙️ Pengaturan Firebase Firestore</h3>
+    <div class="helper-box">
+      <strong>Cara cepat menghubungkan:</strong><br/>
+      1. Buka Firebase Console &gt; Project Settings &gt; Copy cuplikan <code>firebaseConfig</code> lalu tempel di kotak di bawah (otomatis terisi), ATAU isi Project ID &amp; Web API Key secara manual.<br/>
+      2. Pastikan Anda sudah klik <strong>Create Database</strong> di menu Firestore Database.
+    </div>
+
+    <div class="form-group">
+      <label for="fsPasteConfig">Tempel <code>firebaseConfig</code> (Opsional - Isi Otomatis)</label>
+      <textarea id="fsPasteConfig" rows="3" placeholder='Contoh: const firebaseConfig = { apiKey: "AIza...", projectId: "inventaris-app" };'></textarea>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label for="fsProjectId">Firebase Project ID *</label>
+        <input type="text" id="fsProjectId" placeholder="contoh: inventaris-kantor-123" />
+      </div>
+      <div class="form-group">
+        <label for="fsApiKey">Web API Key *</label>
+        <input type="text" id="fsApiKey" placeholder="contoh: AIzaSyB..." />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="fsCollection">Nama Koleksi (Collection) *</label>
+      <input type="text" id="fsCollection" value="inventaris" placeholder="inventaris" />
+    </div>
+
+    <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="fsAutoSync" style="width:auto;" />
+      <label for="fsAutoSync" style="margin:0; cursor:pointer;">Auto-Sync otomatis saat simpan / saat online kembali</label>
+    </div>
+
+    <div id="fsTestResult" style="font-size:0.82rem; margin-bottom:10px;"></div>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+      <button type="button" class="btn btn-outline" id="btnTestFs">🧪 Tes Koneksi</button>
+      <button type="button" class="btn btn-primary" id="btnSaveFsConfig">💾 Simpan Pengaturan</button>
+      <button type="button" class="btn btn-danger" id="btnCloseFsModal">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Kamera Langsung -->
+<div class="modal" id="cameraModal">
+  <div class="modal-content">
+    <video id="cameraVideo" autoplay playsinline></video>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-success" id="btnSnapPhoto">📸 Jepret Foto</button>
+      <button type="button" class="btn btn-danger" id="btnCloseCamera">✕ Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Preview Foto Penuh -->
+<div class="modal" id="imageModal">
+  <div class="modal-content">
+    <img id="modalImg" src="" alt="Foto Inventaris" />
+    <div style="padding:10px 14px; font-size:0.85rem; color:#cbd5e1;" id="modalCaption"></div>
+    <div class="modal-footer">
+      <a id="btnDownloadPhoto" href="#" download="inventaris.jpg" class="btn btn-primary">⬇️ Unduh Foto</a>
+      <button type="button" class="btn btn-outline" id="btnCloseImgModal" style="color:white; border-color:#475569; background:transparent;">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- 1. INTERNAL STORAGE (IndexedDB + LocalStorage Config) ---
+  const DB_NAME = 'InventarisKameraDB';
+  const STORE_NAME = 'items';
+  const FS_CONFIG_KEY = 'inventaris_firestore_config_v1';
+
+  let db = null;
+  let allItems = [];
+  let editingId = null;
+  let rawImageDataUrl = null;
+  let existingPhotoUrl = null;
+  let gpsAccuracy = null;
+  let cameraStream = null;
+
+  function initDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = (e) => {
+        const database = e.target.result;
+        if (!database.objectStoreNames.contains(STORE_NAME)) {
+          database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+      req.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  function dbGetAll() {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).getAll();
+      req.onsuccess = () => resolve(req.result.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function dbPut(item) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const req = tx.objectStore(STORE_NAME).put(item);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function dbDelete(id) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const req = tx.objectStore(STORE_NAME).delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function dbClear() {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const req = tx.objectStore(STORE_NAME).clear();
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function updateStorageEstimate() {
+    const el = document.getElementById('storageEstimate');
+    if (navigator.storage && navigator.storage.estimate) {
+      try {
+        const est = await navigator.storage.estimate();
+        const usedMB = ((est.usage || 0) / (1024 * 1024)).toFixed(2);
+        el.textContent = `💾 Internal Storage: ${usedMB} MB terpakai`;
+      } catch {}
+    }
+  }
+
+  // --- 2. STATUS KONEKSI & KONFIGURASI FIRESTORE ---
+  function getFsConfig() {
+    try {
+      return JSON.parse(localStorage.getItem(FS_CONFIG_KEY)) || { projectId: '', apiKey: '', collection: 'inventaris', autoSync: false };
+    } catch {
+      return { projectId: '', apiKey: '', collection: 'inventaris', autoSync: false };
+    }
+  }
+
+  function isFsConfigured() {
+    const cfg = getFsConfig();
+    return Boolean(cfg.projectId && cfg.apiKey && cfg.collection);
+  }
+
+  function updateNetworkAndFsUI() {
+    const online = navigator.onLine;
+    document.getElementById('netDot').className = 'dot ' + (online ? 'dot-online' : 'dot-offline');
+    document.getElementById('netText').textContent = online ? 'Online' : 'Offline';
+
+    const cfg = getFsConfig();
+    const label = document.getElementById('fsStatusLabel');
+    if (isFsConfigured()) {
+      label.innerHTML = `✅ Target Firestore: <strong>${escapeHtml(cfg.projectId)}</strong> (koleksi: <code>${escapeHtml(cfg.collection)}</code>)${cfg.autoSync ? ' • Auto-Sync ON' : ''}`;
+    } else {
+      label.textContent = '🔌 Firestore belum diatur (data tetap aman tersimpan di Internal Storage)';
+    }
+  }
+
+  window.addEventListener('online', () => {
+    updateNetworkAndFsUI();
+    const cfg = getFsConfig();
+    if (cfg.autoSync && isFsConfigured()) {
+      syncAllToFirestore(true);
+    }
+  });
+  window.addEventListener('offline', updateNetworkAndFsUI);
+
+  // Modal Pengaturan Firestore
+  document.getElementById('btnOpenFsSettings').addEventListener('click', () => {
+    const cfg = getFsConfig();
+    document.getElementById('fsProjectId').value = cfg.projectId || '';
+    document.getElementById('fsApiKey').value = cfg.apiKey || '';
+    document.getElementById('fsCollection').value = cfg.collection || 'inventaris';
+    document.getElementById('fsAutoSync').checked = Boolean(cfg.autoSync);
+    document.getElementById('fsTestResult').textContent = '';
+    document.getElementById('fsSettingsModal').classList.add('active');
+  });
+
+  document.getElementById('btnCloseFsModal').addEventListener('click', () => {
+    document.getElementById('fsSettingsModal').classList.remove('active');
+  });
+
+  // Ekstrak otomatis dari paste firebaseConfig
+  document.getElementById('fsPasteConfig').addEventListener('input', (e) => {
+    const txt = e.target.value;
+    const apiMatch = txt.match(/apiKey\s*[:=]\s*["']([^"']+)["']/);
+    const projMatch = txt.match(/projectId\s*[:=]\s*["']([^"']+)["']/);
+    if (apiMatch) document.getElementById('fsApiKey').value = apiMatch[1].trim();
+    if (projMatch) document.getElementById('fsProjectId').value = projMatch[1].trim();
+  });
+
+  document.getElementById('btnSaveFsConfig').addEventListener('click', () => {
+    const projectId = document.getElementById('fsProjectId').value.trim();
+    const apiKey = document.getElementById('fsApiKey').value.trim();
+    const collection = document.getElementById('fsCollection').value.trim() || 'inventaris';
+    const autoSync = document.getElementById('fsAutoSync').checked;
+
+    if (!projectId || !apiKey) {
+      alert('Project ID dan Web API Key wajib diisi.');
+      return;
+    }
+    localStorage.setItem(FS_CONFIG_KEY, JSON.stringify({ projectId, apiKey, collection, autoSync }));
+    updateNetworkAndFsUI();
+    document.getElementById('fsSettingsModal').classList.remove('active');
+    alert('✅ Pengaturan Firestore disimpan!');
+  });
+
+  document.getElementById('btnTestFs').addEventListener('click', async () => {
+    const projectId = document.getElementById('fsProjectId').value.trim();
+    const apiKey = document.getElementById('fsApiKey').value.trim();
+    const collection = document.getElementById('fsCollection').value.trim() || 'inventaris';
+    const resEl = document.getElementById('fsTestResult');
+
+    if (!projectId || !apiKey) {
+      resEl.innerHTML = '<span style="color:var(--danger);">Isi Project ID dan API Key terlebih dahulu.</span>';
+      return;
+    }
+    resEl.innerHTML = '⏳ Menghubungi Firestore...';
+    try {
+      const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/${encodeURIComponent(collection)}?pageSize=1&key=${encodeURIComponent(apiKey)}`;
+      const resp = await fetch(url);
+      if (resp.ok) {
+        resEl.innerHTML = '<span style="color:var(--success); font-weight:700;">✅ Koneksi Firestore Berhasil! Siap menerima data.</span>';
+      } else {
+        const errJson = await resp.json().catch(() => ({}));
+        const msg = errJson?.error?.message || resp.statusText;
+        resEl.innerHTML = `<span style="color:var(--danger);">❌ Gagal (${resp.status}): ${escapeHtml(msg)}. Cek Project ID, API Key, atau Firestore Rules.</span>`;
+      }
+    } catch (err) {
+      resEl.innerHTML = `<span style="color:var(--danger);">❌ Error jaringan: ${escapeHtml(err.message)}</span>`;
+    }
+  });
+
+  // --- 3. FIRESTORE REST API SYNC ---
+  function itemToFirestoreFields(item) {
+    const fields = {
+      id: { stringValue: String(item.id) },
+      location: { stringValue: String(item.location || '') },
+      date: { stringValue: String(item.date || '') },
+      lat: { stringValue: String(item.lat || '') },
+      lng: { stringValue: String(item.lng || '') },
+      mapsUrl: { stringValue: (item.lat && item.lng) ? `https://maps.google.com/?q=${item.lat},${item.lng}` : '' },
+      code: { stringValue: String(item.code || '') },
+      name: { stringValue: String(item.name || '') },
+      category: { stringValue: String(item.category || '') },
+      qty: { integerValue: String(Math.round(Number(item.qty) || 1)) },
+      unit: { stringValue: String(item.unit || 'Unit') },
+      condition: { stringValue: String(item.condition || 'Baik') },
+      notes: { stringValue: String(item.notes || '') },
+      photoBase64: { stringValue: String(item.photo || '') },
+      createdAt: { integerValue: String(item.createdAt || Date.now()) },
+      syncedAt: { timestampValue: new Date().toISOString() }
+    };
+
+    const latNum = parseFloat(item.lat);
+    const lngNum = parseFloat(item.lng);
+    if (!isNaN(latNum) && !isNaN(lngNum) && Math.abs(latNum) <= 90 && Math.abs(lngNum) <= 180) {
+      fields.geoPoint = { geoPointValue: { latitude: latNum, longitude: lngNum } };
+    }
+    return { fields };
+  }
+
+  function firestoreDocToItem(doc) {
+    const f = doc.fields || {};
+    const docId = doc.name.split('/').pop();
+    const getStr = (k, def = '') => f[k]?.stringValue ?? def;
+    const getInt = (k, def = 0) => f[k]?.integerValue !== undefined ? Number(f[k].integerValue) : def;
+
+    return {
+      id: getStr('id', docId),
+      createdAt: getInt('createdAt', Date.now()),
+      location: getStr('location'),
+      date: getStr('date'),
+      lat: getStr('lat'),
+      lng: getStr('lng'),
+      code: getStr('code'),
+      name: getStr('name'),
+      category: getStr('category', 'Elektronik'),
+      qty: getInt('qty', 1),
+      unit: getStr('unit', 'Unit'),
+      condition: getStr('condition', 'Baik'),
+      notes: getStr('notes'),
+      photo: getStr('photoBase64') || null,
+      synced: true,
+      syncedAt: f.syncedAt?.timestampValue || new Date().toISOString()
+    };
+  }
+
+  async function pushOneToFirestore(item) {
+    const cfg = getFsConfig();
+    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(cfg.projectId)}/databases/(default)/documents/${encodeURIComponent(cfg.collection)}/${encodeURIComponent(item.id)}?key=${encodeURIComponent(cfg.apiKey)}`;
+    const payload = itemToFirestoreFields(item);
+    const resp = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      throw new Error(`HTTP ${resp.status}: ${errData?.error?.message || resp.statusText}`);
+    }
+    item.synced = true;
+    item.syncedAt = new Date().toISOString();
+    await dbPut(item);
+  }
+
+  async function deleteOneFromFirestore(id) {
+    const cfg = getFsConfig();
+    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(cfg.projectId)}/databases/(default)/documents/${encodeURIComponent(cfg.collection)}/${encodeURIComponent(id)}?key=${encodeURIComponent(cfg.apiKey)}`;
+    await fetch(url, { method: 'DELETE' }).catch(() => {});
+  }
+
+  async function syncAllToFirestore(silent = false) {
+    if (!isFsConfigured()) {
+      if (!silent) {
+        alert('Silakan atur Project ID & API Key Firestore terlebih dahulu di menu "⚙️ Pengaturan Firestore".');
+        document.getElementById('btnOpenFsSettings').click();
+      }
+      return;
+    }
+    if (!navigator.onLine) {
+      if (!silent) alert('Anda sedang OFFLINE. Data tetap aman di Internal Storage dan bisa dikirim saat ada sinyal internet.');
+      return;
+    }
+
+    const pending = allItems.filter(i => !i.synced);
+    if (pending.length === 0) {
+      if (!silent) alert('✅ Semua data sudah terkirim ke Firestore.');
+      return;
+    }
+
+    const btn = document.getElementById('btnSyncNow');
+    btn.disabled = true;
+    let successCount = 0;
+    let lastErr = '';
+
+    for (let i = 0; i < pending.length; i++) {
+      btn.textContent = `⏳ Mengirim ${i + 1} / ${pending.length}...`;
+      try {
+        await pushOneToFirestore(pending[i]);
+        successCount++;
+      } catch (err) {
+        lastErr = err.message;
+        console.error('Sync failed:', pending[i].id, err);
+      }
+    }
+
+    await loadAndRender();
+    btn.disabled = false;
+    btn.innerHTML = `☁️ Kirim ke Firestore (<span id="btnUnsyncedCount">${allItems.filter(i => !i.synced).length}</span>)`;
+
+    if (!silent) {
+      if (successCount === pending.length) {
+        alert(`✅ Berhasil mengirim ${successCount} data ke Firestore!`);
+      } else {
+        alert(`Terkirim ${successCount} dari ${pending.length} data.\nError: ${lastErr}\nPastikan Firestore Rules mengizinkan penulisan.`);
+      }
+    }
+  }
+
+  window.syncSingleItem = async function(id) {
+    if (!isFsConfigured()) {
+      alert('Atur Firestore dulu di tombol "⚙️ Pengaturan Firestore".');
+      return;
+    }
+    if (!navigator.onLine) {
+      alert('Sedang offline. Data tersimpan di Internal Storage.');
+      return;
+    }
+    const item = allItems.find(x => x.id === id);
+    if (!item) return;
+    try {
+      await pushOneToFirestore(item);
+      await loadAndRender();
+    } catch (err) {
+      alert('Gagal kirim ke Firestore: ' + err.message);
+    }
+  };
+
+  document.getElementById('btnSyncNow').addEventListener('click', () => syncAllToFirestore(false));
+
+  document.getElementById('btnPullFirestore').addEventListener('click', async () => {
+    if (!isFsConfigured()) {
+      alert('Silakan isi pengaturan Firestore terlebih dahulu.');
+      document.getElementById('btnOpenFsSettings').click();
+      return;
+    }
+    if (!navigator.onLine) {
+      alert('Perlu koneksi internet untuk menarik data dari Firestore.');
+      return;
+    }
+    const btn = document.getElementById('btnPullFirestore');
+    btn.disabled = true;
+    btn.textContent = '⏳ Menarik data...';
+
+    try {
+      const cfg = getFsConfig();
+      let pageToken = '';
+      let fetchedCount = 0;
+
+      do {
+        const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(cfg.projectId)}/databases/(default)/documents/${encodeURIComponent(cfg.collection)}?pageSize=100${pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : ''}&key=${encodeURIComponent(cfg.apiKey)}`;
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(`HTTP ${resp.status}: ${errData?.error?.message || resp.statusText}`);
+        }
+        const json = await resp.json();
+        const docs = json.documents || [];
+        for (const doc of docs) {
+          const parsed = firestoreDocToItem(doc);
+          const localExisting = allItems.find(x => x.id === parsed.id);
+          // Jangan timpa data lokal yang belum disinkronkan (masih ada edit terbaru)
+          if (!localExisting || localExisting.synced) {
+            await dbPut(parsed);
+            fetchedCount++;
+          }
+        }
+        pageToken = json.nextPageToken || '';
+      } while (pageToken);
+
+      await loadAndRender();
+      alert(`✅ Berhasil menarik & menyinkronkan ${fetchedCount} data dari Firestore ke Internal Storage!`);
+    } catch (err) {
+      alert('Gagal menarik data: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '⬇️ Tarik Data dari Firestore';
+    }
+  });
+
+  // --- 4. WAKTU & GPS ---
+  function setNowDateTime() {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    document.getElementById('inputDate').value = new Date(now - offset).toISOString().slice(0, 16);
+  }
+
+  function formatDisplayDate(isoStr) {
+    if (!isoStr) return '-';
+    return new Date(isoStr).toLocaleString('id-ID', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  function fetchGPS() {
+    const statusEl = document.getElementById('gpsStatus');
+    const linkEl = document.getElementById('gpsLink');
+    if (!navigator.geolocation) {
+      statusEl.textContent = '⚠️ Browser tidak mendukung GPS.';
+      return;
+    }
+    statusEl.textContent = '📡 Mencari sinyal GPS...';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude.toFixed(6);
+        const lng = pos.coords.longitude.toFixed(6);
+        gpsAccuracy = Math.round(pos.coords.accuracy);
+        document.getElementById('inputLat').value = lat;
+        document.getElementById('inputLng').value = lng;
+        statusEl.textContent = `✅ GPS Terkunci (Akurasi ±${gpsAccuracy}m)`;
+        linkEl.href = `https://maps.google.com/?q=${lat},${lng}`;
+        linkEl.style.display = 'inline-flex';
+      },
+      () => {
+        gpsAccuracy = null;
+        statusEl.textContent = '⚠️ Gagal ambil GPS otomatis. Bisa diisi manual.';
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  }
+  document.getElementById('btnGetGps').addEventListener('click', fetchGPS);
+
+  // --- 5. KAMERA, KOMPRESI & WATERMARK ---
+  function resizeImage(dataUrl, maxWidth = 1024, quality = 0.8) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
+    });
+  }
+
+  function showPhotoPreview(dataUrl) {
+    const img = document.getElementById('photoPreview');
+    img.src = dataUrl;
+    img.style.display = 'block';
+    document.getElementById('photoPlaceholder').style.display = 'none';
+    document.getElementById('btnClearPhoto').style.display = 'block';
+  }
+
+  function clearPhoto() {
+    rawImageDataUrl = null;
+    existingPhotoUrl = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('photoPreview').style.display = 'none';
+    document.getElementById('photoPreview').src = '';
+    document.getElementById('photoPlaceholder').style.display = 'block';
+    document.getElementById('btnClearPhoto').style.display = 'none';
+  }
+  document.getElementById('btnClearPhoto').addEventListener('click', clearPhoto);
+
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      rawImageDataUrl = await resizeImage(ev.target.result, 1024, 0.82);
+      existingPhotoUrl = null;
+      showPhotoPreview(rawImageDataUrl);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('btnOpenCamera').addEventListener('click', async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert('Kamera langsung butuh HTTPS. Gunakan tombol "Kamera HP / Galeri".');
+      return;
+    }
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }, audio: false
+      });
+      document.getElementById('cameraVideo').srcObject = cameraStream;
+      document.getElementById('cameraModal').classList.add('active');
+    } catch (err) {
+      alert('Tidak dapat membuka kamera langsung: ' + err.message);
+    }
+  });
+
+  function stopCameraModal() {
+    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+    document.getElementById('cameraModal').classList.remove('active');
+  }
+  document.getElementById('btnCloseCamera').addEventListener('click', stopCameraModal);
+
+  document.getElementById('btnSnapPhoto').addEventListener('click', async () => {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 1024;
+    canvas.height = video.videoHeight || 768;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    rawImageDataUrl = await resizeImage(canvas.toDataURL('image/jpeg', 0.85), 1024, 0.82);
+    existingPhotoUrl = null;
+    showPhotoPreview(rawImageDataUrl);
+    stopCameraModal();
+  });
+
+  function createWatermarkedImage(srcDataUrl, item) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const fontSize = Math.max(15, Math.round(canvas.width * 0.024));
+        const lineHeight = Math.round(fontSize * 1.4);
+        const pad = Math.round(fontSize * 0.8);
+
+        const gpsText = (item.lat && item.lng)
+          ? `GPS: ${item.lat}, ${item.lng}` + (gpsAccuracy ? ` (±${gpsAccuracy}m)` : '')
+          : 'GPS: Tidak terdeteksi';
+
+        const lines = [
+          { text: `📍 ${item.location} | ${item.code ? item.code + ' - ' : ''}${item.name}`, color: '#fde047', bold: true },
+          { text: `📦 ${item.qty} ${item.unit} (${item.condition}) | 🕒 ${formatDisplayDate(item.date)}`, color: '#ffffff', bold: false },
+          { text: `🛰️ ${gpsText}`, color: '#7dd3fc', bold: false }
+        ];
+        if (item.notes) lines.push({ text: `📝 ${item.notes.slice(0, 70)}`, color: '#e2e8f0', bold: false });
+
+        const boxHeight = pad * 2 + lines.length * lineHeight;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+        ctx.fillRect(0, canvas.height - boxHeight, canvas.width, boxHeight);
+
+        lines.forEach((line, idx) => {
+          ctx.font = `${line.bold ? 'bold ' : ''}${fontSize}px sans-serif`;
+          ctx.fillStyle = line.color;
+          ctx.textBaseline = 'top';
+          ctx.fillText(line.text, pad, canvas.height - boxHeight + pad + idx * lineHeight, canvas.width - pad * 2);
+        });
+
+        // Kompresi aman agar ukuran < 680 KB (muat nyaman di batas 1 MB dokumen Firestore)
+        let result = canvas.toDataURL('image/jpeg', 0.78);
+        if (result.length > 680000) {
+          result = await resizeImage(result, 800, 0.65);
+        }
+        resolve(result);
+      };
+      img.src = srcDataUrl;
+    });
+  }
+
+  // --- 6. SIMPAN, EDIT, HAPUS (INTERNAL STORAGE) ---
+  document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnSave');
+    btn.disabled = true;
+    btn.textContent = '⏳ Menyimpan ke Internal Storage...';
+
+    try {
+      const itemData = {
+        id: editingId || ('INV_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
+        createdAt: editingId ? (allItems.find(x => x.id === editingId)?.createdAt || Date.now()) : Date.now(),
+        location: document.getElementById('inputLocation').value.trim(),
+        date: document.getElementById('inputDate').value,
+        lat: document.getElementById('inputLat').value.trim(),
+        lng: document.getElementById('inputLng').value.trim(),
+        code: document.getElementById('inputCode').value.trim(),
+        name: document.getElementById('inputName').value.trim(),
+        category: document.getElementById('inputCategory').value,
+        qty: Number(document.getElementById('inputQty').value) || 1,
+        unit: document.getElementById('inputUnit').value.trim() || 'Unit',
+        condition: document.getElementById('inputCondition').value,
+        notes: document.getElementById('inputNotes').value.trim(),
+        photo: null,
+        synced: false
+      };
+
+      if (rawImageDataUrl) {
+        itemData.photo = await createWatermarkedImage(rawImageDataUrl, itemData);
+      } else if (existingPhotoUrl) {
+        itemData.photo = existingPhotoUrl;
+      }
+
+      // 1. Selalu simpan dulu ke Internal Storage
+      await dbPut(itemData);
+
+      // 2. Jika Auto-Sync aktif & online & Firestore sudah disetting, langsung kirim
+      const cfg = getFsConfig();
+      let autoMsg = 'Data tersimpan di Internal Storage.';
+      if (cfg.autoSync && isFsConfigured() && navigator.onLine) {
+        try {
+          btn.textContent = '☁️ Mengirim ke Firestore...';
+          await pushOneToFirestore(itemData);
+          autoMsg = 'Data tersimpan di Internal Storage & langsung terkirim ke Firestore!';
+        } catch (fsErr) {
+          autoMsg = 'Tersimpan di Internal Storage (gagal auto-sync ke Firestore: ' + fsErr.message + ').';
+        }
+      }
+
+      await loadAndRender();
+      resetForm(true);
+      alert('✅ ' + autoMsg);
+    } catch (err) {
+      alert('Gagal menyimpan: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '💾 Simpan ke Internal Storage';
+    }
+  });
+
+  function resetForm(keepLocation = false) {
+    const lastLoc = document.getElementById('inputLocation').value;
+    const lastLat = document.getElementById('inputLat').value;
+    const lastLng = document.getElementById('inputLng').value;
+
+    document.getElementById('inventoryForm').reset();
+    editingId = null;
+    document.getElementById('formTitle').textContent = '➕ Catat Barang Inventaris';
+    document.getElementById('btnCancelEdit').style.display = 'none';
+    document.getElementById('btnSave').textContent = '💾 Simpan ke Internal Storage';
+    clearPhoto();
+    setNowDateTime();
+
+    if (keepLocation) {
+      document.getElementById('inputLocation').value = lastLoc;
+      document.getElementById('inputLat').value = lastLat;
+      document.getElementById('inputLng').value = lastLng;
+    } else {
+      fetchGPS();
+    }
+  }
+
+  window.editItem = function(id) {
+    const item = allItems.find(x => x.id === id);
+    if (!item) return;
+    editingId = item.id;
+    document.getElementById('formTitle').textContent = '✏️ Edit Data Inventaris';
+    document.getElementById('btnCancelEdit').style.display = 'inline-flex';
+    document.getElementById('btnSave').textContent = '💾 Update di Internal Storage';
+
+    document.getElementById('inputLocation').value = item.location;
+    document.getElementById('inputDate').value = item.date;
+    document.getElementById('inputLat').value = item.lat || '';
+    document.getElementById('inputLng').value = item.lng || '';
+    document.getElementById('inputCode').value = item.code || '';
+    document.getElementById('inputName').value = item.name;
+    document.getElementById('inputCategory').value = item.category;
+    document.getElementById('inputQty').value = item.qty;
+    document.getElementById('inputUnit').value = item.unit;
+    document.getElementById('inputCondition').value = item.condition;
+    document.getElementById('inputNotes').value = item.notes || '';
+
+    rawImageDataUrl = null;
+    existingPhotoUrl = item.photo || null;
+    if (existingPhotoUrl) showPhotoPreview(existingPhotoUrl);
+    else clearPhoto();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  window.deleteItem = async function(id) {
+    const item = allItems.find(x => x.id === id);
+    if (!item) return;
+    if (!confirm(`Hapus "${item.name}" dari Internal Storage?`)) return;
+
+    await dbDelete(id);
+    if (item.synced && isFsConfigured() && navigator.onLine) {
+      if (confirm('Data ini sudah ada di Firestore. Hapus juga dari Firestore?')) {
+        await deleteOneFromFirestore(id);
+      }
+    }
+    await loadAndRender();
+  };
+
+  document.getElementById('btnResetAll').addEventListener('click', async () => {
+    if (allItems.length === 0) return;
+    const unsynced = allItems.filter(i => !i.synced).length;
+    const warn = unsynced > 0
+      ? `PERINGATAN: Masih ada ${unsynced} data yang BELUM dikirim ke Firestore! Tetap hapus semua data dari Internal Storage?`
+      : 'Hapus semua data lokal dari Internal Storage? (Data yang sudah dikirim ke Firestore tetap aman di cloud)';
+    if (confirm(warn)) {
+      await dbClear();
+      await loadAndRender();
+    }
+  });
+
+  // --- 7. RENDER DAFTAR, FILTER & STATISTIK ---
+  function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+
+  function getConditionBadge(cond) {
+    if (cond === 'Baik') return 'badge-baik';
+    if (cond === 'Rusak Ringan') return 'badge-ringan';
+    if (cond === 'Rusak Berat') return 'badge-berat';
+    return 'badge-hilang';
+  }
+
+  function getFilteredItems() {
+    const loc = document.getElementById('filterLocation').value;
+    const syncF = document.getElementById('filterSync').value;
+    const cond = document.getElementById('filterCondition').value;
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+
+    return allItems.filter(item => {
+      if (loc && item.location !== loc) return false;
+      if (syncF === 'synced' && !item.synced) return false;
+      if (syncF === 'unsynced' && item.synced) return false;
+      if (cond && item.condition !== cond) return false;
+      if (q) {
+        const hay = `${item.name} ${item.code} ${item.location} ${item.category} ${item.notes}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function updateStatsAndDropdowns() {
+    const locations = [...new Set(allItems.map(i => i.location).filter(Boolean))].sort();
+    const datalist = document.getElementById('locationSuggestions');
+    const filterLoc = document.getElementById('filterLocation');
+    const currentVal = filterLoc.value;
+
+    datalist.innerHTML = locations.map(l => `<option value="${escapeHtml(l)}">`).join('');
+    filterLoc.innerHTML = `<option value="">📍 Semua Lokasi (${locations.length})</option>` +
+      locations.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('');
+    filterLoc.value = locations.includes(currentVal) ? currentVal : '';
+
+    const unsyncedCount = allItems.filter(i => !i.synced).length;
+    document.getElementById('statTotalItems').textContent = allItems.length;
+    document.getElementById('statTotalQty').textContent = allItems.reduce((s, i) => s + (Number(i.qty) || 0), 0);
+    document.getElementById('statTotalLoc').textContent = locations.length;
+    document.getElementById('statUnsynced').textContent = unsyncedCount;
+
+    const btnBadge = document.getElementById('btnUnsyncedCount');
+    if (btnBadge) btnBadge.textContent = unsyncedCount;
+  }
+
+  function renderList() {
+    const items = getFilteredItems();
+    const container = document.getElementById('inventoryList');
+
+    if (items.length === 0) {
+      container.innerHTML = `<p style="grid-column:1/-1; text-align:center; color:#64748b; padding:24px;">Belum ada data inventaris yang cocok.</p>`;
+      return;
+    }
+
+    container.innerHTML = items.map(item => {
+      const hasGps = item.lat && item.lng;
+      const mapUrl = hasGps ? `https://maps.google.com/?q=${item.lat},${item.lng}` : '#';
+      const syncTag = item.synced
+        ? `<span class="sync-badge sync-yes">🟢 Tersinkron</span>`
+        : `<span class="sync-badge sync-no">🟡 Lokal (Belum Kirim)</span>`;
+
+      const imgTag = item.photo
+        ? `<img src="${item.photo}" class="inv-img" onclick="openImageModal('${item.id}')" alt="${escapeHtml(item.name)}" />`
+        : `<div class="inv-img" style="display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:0.85rem;">Tidak ada foto</div>`;
+
+      return `
+        <div class="inv-card">
+          ${syncTag}
+          ${imgTag}
+          <div class="inv-body">
+            <span class="inv-loc">📍 ${escapeHtml(item.location)}</span>
+            <div class="inv-title">${escapeHtml(item.name)}</div>
+            <div class="inv-meta">
+              ${item.code ? `<strong>Kode:</strong> ${escapeHtml(item.code)} • ` : ''}
+              <strong>Jumlah:</strong> ${item.qty} ${escapeHtml(item.unit)}
+            </div>
+            <div class="inv-meta">
+              <strong>Kategori:</strong> ${escapeHtml(item.category)} •
+              <span class="badge ${getConditionBadge(item.condition)}">${escapeHtml(item.condition)}</span>
+            </div>
+            <div class="inv-meta">🕒 ${formatDisplayDate(item.date)}</div>
+            <div class="inv-meta">🛰️ ${hasGps ? `${item.lat}, ${item.lng}` : 'GPS tidak tercatat'}</div>
+            ${item.notes ? `<div class="inv-meta" style="color:#334155;">📝 ${escapeHtml(item.notes)}</div>` : ''}
+          </div>
+          <div class="inv-actions">
+            ${!item.synced ? `<button type="button" class="btn btn-purple btn-sm" onclick="syncSingleItem('${item.id}')">☁️ Kirim</button>` : ''}
+            ${hasGps ? `<a href="${mapUrl}" target="_blank" class="btn btn-outline btn-sm">🗺️ Maps</a>` : ''}
+            <button type="button" class="btn btn-outline btn-sm" onclick="editItem('${item.id}')">✏️ Edit</button>
+            <button type="button" class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="deleteItem('${item.id}')">🗑️ Hapus</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function loadAndRender() {
+    allItems = await dbGetAll();
+    updateStatsAndDropdowns();
+    renderList();
+    updateStorageEstimate();
+  }
+
+  ['filterLocation', 'filterSync', 'filterCondition', 'searchInput'].forEach(id => {
+    document.getElementById(id).addEventListener('input', renderList);
+  });
+
+  // --- 8. MODAL PREVIEW FOTO & EKSPOR ---
+  window.openImageModal = function(id) {
+    const item = allItems.find(x => x.id === id);
+    if (!item || !item.photo) return;
+    document.getElementById('modalImg').src = item.photo;
+    document.getElementById('modalCaption').textContent = `${item.location} — ${item.name} (${formatDisplayDate(item.date)})`;
+    const dl = document.getElementById('btnDownloadPhoto');
+    dl.href = item.photo;
+    dl.download = `INV_${(item.location + '_' + item.name).replace(/[^a-z0-9]/gi, '_')}.jpg`;
+    document.getElementById('imageModal').classList.add('active');
+  };
+  document.getElementById('btnCloseImgModal').addEventListener('click', () => {
+    document.getElementById('imageModal').classList.remove('active');
+  });
+
+  function csvCell(val) {
+    return `"${String(val ?? '').replace(/"/g, '""')}"`;
+  }
+
+  document.getElementById('btnExportCsv').addEventListener('click', () => {
+    const items = getFilteredItems();
+    if (items.length === 0) { alert('Tidak ada data untuk diekspor.'); return; }
+    const headers = [
+      'No', 'Lokasi', 'Tanggal & Waktu', 'Kode Barang', 'Nama Barang',
+      'Kategori', 'Jumlah', 'Satuan', 'Kondisi', 'Latitude', 'Longitude', 'Link Google Maps', 'Catatan', 'Status Firestore'
+    ];
+    const rows = items.map((item, idx) => [
+      idx + 1, item.location, formatDisplayDate(item.date), item.code, item.name,
+      item.category, item.qty, item.unit, item.condition, item.lat, item.lng,
+      (item.lat && item.lng) ? `https://maps.google.com/?q=${item.lat},${item.lng}` : '',
+      item.notes, item.synced ? 'Tersinkron' : 'Lokal'
+    ]);
+    const csvContent = '\uFEFF' + [headers, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Inventaris_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('btnPrintPdf').addEventListener('click', () => {
+    const loc = document.getElementById('filterLocation').value || 'Semua Lokasi';
+    document.getElementById('printMeta').textContent =
+      `Filter Lokasi: ${loc} | Total Data: ${getFilteredItems().length} | Dicetak: ${new Date().toLocaleString('id-ID')}`;
+    window.print();
+  });
+
+  // --- INISIALISASI ---
+  window.addEventListener('DOMContentLoaded', async () => {
+    setNowDateTime();
+    fetchGPS();
+    updateNetworkAndFsUI();
+    await initDB();
+    await loadAndRender();
+  });
+</script>
+</body>
+</html>
