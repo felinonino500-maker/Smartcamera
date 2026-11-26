@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termux Ultimate Setup: SSH, Gemini CLI, Go & Firebase</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome untuk Ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        termux: {
+                            bg: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            green: '#2ea043',
+                            accent: '#58a6ff'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Notifikasi Toast saat Copy -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl border border-emerald-400/30">
+        <i class="fa-solid fa-circle-check text-lg"></i>
+        <span id="toast-msg" class="font-medium text-sm">Script berhasil disalin ke clipboard!</span>
+    </div>
+
+    <!-- Navigasi Sticky -->
+    <nav class="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <span class="font-mono font-bold text-white text-lg">$_</span>
+                    </div>
+                    <span class="font-bold text-lg tracking-tight text-white">Termux<span class="text-emerald-400">Dev</span></span>
+                </div>
+                
+                <!-- Menu Desktop -->
+                <div class="hidden md:flex items-center space-x-1">
+                    <a href="#persiapan" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">1. Dasar</a>
+                    <a href="#ssh" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">2. SSH</a>
+                    <a href="#gemini" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">3. Gemini CLI</a>
+                    <a href="#golang" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">4. Go Lang</a>
+                    <a href="#firebase" class="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">5. Firestore & RTDB</a>
+                    <a href="#all-in-one" class="ml-2 px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition">Auto-Script</a>
+                </div>
+
+                <!-- Tombol Menu Mobile -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 focus:outline-none">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dropdown Menu Mobile -->
+        <div id="mobile-menu" class="hidden md:hidden bg-slate-900 border-b border-slate-800 px-4 pt-2 pb-4 space-y-1">
+            <a href="#persiapan" class="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800">1. Persiapan Dasar</a>
+            <a href="#ssh" class="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800">2. Setup OpenSSH</a>
+            <a href="#gemini" class="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800">3. Gemini CLI</a>
+            <a href="#golang" class="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800">4. Instalasi Go</a>
+            <a href="#firebase" class="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800">5. Firestore & RTDB</a>
+            <a href="#all-in-one" class="block px-3 py-2 rounded-lg text-base font-semibold text-emerald-400 hover:bg-slate-800">⚡ Generator Auto-Script</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section dengan Ilustrasi SVG -->
+    <header class="relative overflow-hidden pt-12 pb-16 lg:pt-20 lg:pb-24 border-b border-slate-800/80">
+        <!-- Efek Cahaya Latar -->
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <!-- Kolom Teks -->
+                <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700/80 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Mobile Dev Environment
+                    </div>
+                    <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                        Ubah HP Android Jadi <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Cloud Workstation</span>
+                    </h1>
+                    <p class="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                        Panduan praktis setup <strong>Termux</strong> lengkap dengan remote <strong>SSH</strong>, asisten AI <strong>Gemini CLI</strong>, bahasa pemrograman <strong>Go</strong>, serta koneksi database <strong>Firestore & RTDB</strong>. Tinggal klik salin dan tempel!
+                    </p>
+                    <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
+                        <a href="#persiapan" class="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-600/25 transition flex items-center gap-2">
+                            <span>Mulai Setup Sekarang</span>
+                            <i class="fa-solid fa-arrow-down text-sm"></i>
+                        </a>
+                        <a href="#all-in-one" class="px-6 py-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 font-semibold border border-slate-700 transition flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                            <span>1-Click Auto Script</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Kolom Ilustrasi Arsitektur (Custom SVG Illustration) -->
+                <div class="lg:col-span-5">
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl relative">
+                        <div class="text-xs font-mono text-slate-400 mb-3 flex items-center justify-between">
+                            <span>ARCHITECTURE OVERVIEW</span>
+                            <span class="text-emerald-400">● ONLINE</span>
+                        </div>
+                        <!-- Ilustrasi SVG Interaktif -->
+                        <svg viewBox="0 0 400 280" class="w-full h-auto rounded-xl bg-slate-950 border border-slate-800/80" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Grid Background -->
+                            <defs>
+                                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+                                </pattern>
+                            </defs>
+                            <rect width="400" height="280" fill="url(#grid)" />
+
+                            <!-- Garis Koneksi -->
+                            <path d="M 105 140 L 165 140" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 4"/>
+                            <path d="M 235 115 L 285 75" stroke="#a855f7" stroke-width="2"/>
+                            <path d="M 235 140 L 285 140" stroke="#06b6d4" stroke-width="2"/>
+                            <path d="M 235 165 L 285 205" stroke="#f59e0b" stroke-width="2"/>
+
+                            <!-- Node 1: Laptop / PC Remote (SSH) -->
+                            <g transform="translate(20, 105)">
+                                <rect x="0" y="0" width="85" height="70" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+                                <rect x="12" y="12" width="61" height="36" rx="4" fill="#1e293b"/>
+                                <text x="42" y="34" font-family="monospace" font-size="11" fill="#38bdf8" text-anchor="middle">SSH :8022</text>
+                                <text x="42" y="60" font-family="sans-serif" font-size="10" font-weight="bold" fill="#e2e8f0" text-anchor="middle">PC / Laptop</text>
+                            </g>
+
+                            <!-- Node 2: Smartphone Termux (Core) -->
+                            <g transform="translate(165, 80)">
+                                <rect x="0" y="0" width="70" height="120" rx="12" fill="#064e3b" stroke="#10b981" stroke-width="2"/>
+                                <rect x="6" y="10" width="58" height="96" rx="6" fill="#020617"/>
+                                <text x="14" y="28" font-family="monospace" font-size="10" fill="#10b981">$ termux</text>
+                                <text x="14" y="44" font-family="monospace" font-size="8" fill="#94a3b8">> sshd</text>
+                                <text x="14" y="58" font-family="monospace" font-size="8" fill="#94a3b8">> gemini</text>
+                                <text x="14" y="72" font-family="monospace" font-size="8" fill="#94a3b8">> go run</text>
+                                <circle cx="35" cy="112" r="3" fill="#10b981"/>
+                            </g>
+
+                            <!-- Node 3: Gemini AI -->
+                            <g transform="translate(285, 45)">
+                                <rect x="0" y="0" width="95" height="50" rx="10" fill="#1e1b4b" stroke="#a855f7" stroke-width="1.5"/>
+                                <text x="47" y="23" font-family="sans-serif" font-size="11" font-weight="bold" fill="#e9d5ff" text-anchor="middle">✦ Gemini CLI</text>
+                                <text x="47" y="38" font-family="sans-serif" font-size="9" fill="#c084fc" text-anchor="middle">AI Assistant</text>
+                            </g>
+
+                            <!-- Node 4: Go Runtime -->
+                            <g transform="translate(285, 115)">
+                                <rect x="0" y="0" width="95" height="50" rx="10" fill="#083344" stroke="#06b6d4" stroke-width="1.5"/>
+                                <text x="47" y="23" font-family="sans-serif" font-size="11" font-weight="bold" fill="#cffafe" text-anchor="middle">Go (Golang)</text>
+                                <text x="47" y="38" font-family="sans-serif" font-size="9" fill="#22d3ee" text-anchor="middle">Backend & CLI</text>
+                            </g>
+
+                            <!-- Node 5: Firebase Firestore & RTDB -->
+                            <g transform="translate(285, 185)">
+                                <rect x="0" y="0" width="95" height="55" rx="10" fill="#451a03" stroke="#f59e0b" stroke-width="1.5"/>
+                                <text x="47" y="22" font-family="sans-serif" font-size="11" font-weight="bold" fill="#fef3c7" text-anchor="middle">Firebase SDK</text>
+                                <text x="47" y="36" font-family="sans-serif" font-size="8.5" fill="#fbbf24" text-anchor="middle">Firestore + RTDB</text>
+                                <text x="47" y="48" font-family="sans-serif" font-size="8" fill="#fcd34d" text-anchor="middle">(via Go / CLI)</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Konten Utama -->
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
+
+        <!-- BAGIAN 1: PERSIAPAN DASAR -->
+        <section id="persiapan" class="scroll-mt-24 space-y-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-xl shrink-0">
+                    1
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Persiapan & Update Repositori Termux</h2>
+                    <p class="text-slate-400 text-sm">Pastikan Anda menggunakan Termux versi terbaru dari F-Droid atau GitHub (bukan Play Store).</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 space-y-4">
+                <p class="text-slate-300 text-sm leading-relaxed">
+                    Langkah pertama adalah memperbarui paket bawaan, mengizinkan akses penyimpanan internal HP, dan menginstal utilitas dasar seperti <code class="text-emerald-400 bg-slate-800 px-1.5 py-0.5 rounded">git</code>, <code class="text-emerald-400 bg-slate-800 px-1.5 py-0.5 rounded">curl</code>, dan <code class="text-emerald-400 bg-slate-800 px-1.5 py-0.5 rounded">nodejs</code>.
+                </p>
+
+                <!-- Code Block -->
+                <div class="rounded-xl overflow-hidden border border-slate-700/80 bg-[#0d1117]">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-slate-800/80 border-b border-slate-700/80">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            <span class="ml-2 text-xs font-mono text-slate-400">bash — setup-dasar.sh</span>
+                        </div>
+                        <button onclick="copyCode('code-dasar', this)" class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-700 hover:bg-emerald-600 text-xs font-medium text-white transition cursor-pointer">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Salin Script</span>
+                        </button>
+                    </div>
+                    <pre class="p-4 text-sm font-mono text-slate-200 overflow-x-auto leading-relaxed"><code id="code-dasar"># 1. Update dan upgrade paket sistem
+pkg update -y && pkg upgrade -y
+
+# 2. Berikan izin akses storage HP (klik Allow pada popup)
+termux-setup-storage
+
+# 3. Install paket esensial (Git, Curl, Nano, Node.js, OpenSSL)
+pkg install -y git curl wget nano nodejs-lts openssl-tool</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAGIAN 2: SETUP SSH -->
+        <section id="ssh" class="scroll-mt-24 space-y-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 font-bold text-xl shrink-0">
+                    2
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Setup OpenSSH Server (Remote dari Laptop)</h2>
+                    <p class="text-slate-400 text-sm">Mengetik kode di layar HP kadang melelahkan. Gunakan SSH agar bisa remote dari PC/Laptop dalam satu jaringan Wi-Fi.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                <!-- Ilustrasi SVG Alur SSH -->
+                <div class="md:col-span-5 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-center">
+                    <svg viewBox="0 0 260 170" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="10" y="20" width="90" height="60" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+                        <text x="55" y="46" font-family="sans-serif" font-size="11" font-weight="bold" fill="#f8fafc" text-anchor="middle">Laptop / PC</text>
+                        <text x="55" y="62" font-family="monospace" font-size="9" fill="#38bdf8" text-anchor="middle">ssh -p 8022</text>
+
+                        <!-- Panah Terowongan -->
+                        <line x1="100" y1="50" x2="160" y2="50" stroke="#10b981" stroke-width="2" stroke-dasharray="3 3"/>
+                        <polygon points="158,45 166,50 158,55" fill="#10b981"/>
+                        <rect x="112" y="32" width="36" height="14" rx="4" fill="#064e3b"/>
+                        <text x="130" y="42" font-family="monospace" font-size="8" fill="#34d399" text-anchor="middle">PORT 8022</text>
+
+                        <rect x="165" y="15" width="85" height="75" rx="10" fill="#0f172a" stroke="#10b981" stroke-width="1.5"/>
+                        <text x="207" y="45" font-family="sans-serif" font-size="11" font-weight="bold" fill="#f8fafc" text-anchor="middle">Termux HP</text>
+                        <text x="207" y="61" font-family="monospace" font-size="9" fill="#10b981" text-anchor="middle">sshd active</text>
+                        <text x="207" y="75" font-family="monospace" font-size="8" fill="#94a3b8" text-anchor="middle">user: u0_a...</text>
+
+                        <rect x="15" y="108" width="230" height="48" rx="8" fill="#1e293b"/>
+                        <text x="130" y="128" font-family="sans-serif" font-size="10" font-weight="bold" fill="#fbbf24" text-anchor="middle">💡 Tips Koneksi Stabil</text>
+                        <text x="130" y="144" font-family="sans-serif" font-size="9" fill="#cbd5e1" text-anchor="middle">Gunakan perintah termux-wake-lock agar Wi-Fi tidak tidur</text>
+                    </svg>
+                </div>
+
+                <!-- Blok Kode SSH -->
+                <div class="md:col-span-7 bg-slate-900/60 border border-slate-800 rounded-2xl p-6 space-y-4">
+                    <div class="rounded-xl overflow-hidden border border-slate-700/80 bg-[#0d1117]">
+                        <div class="flex items-center justify-between px-4 py-2.5 bg-slate-800/80 border-b border-slate-700/80">
+                            <span class="text-xs font-mono text-slate-400">bash — setup-ssh.sh</span>
+                            <button onclick="copyCode('code-ssh', this)" class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-700 hover:bg-sky-600 text-xs font-medium text-white transition cursor-pointer">
+                                <i class="fa-regular fa-copy"></i>
+                                <span>Salin Script</span>
+                            </button>
+                        </div>
+                        <pre class="p-4 text-sm font-mono text-slate-200 overflow-x-auto leading-relaxed"><code id="code-ssh"># 1. Install paket OpenSSH
+pkg install -y openssh
+
+# 2. Buat password baru untuk login SSH (ketik password Anda)
+passwd
+
+# 3. Jalankan SSH daemon (Default berjalan di port 8022)
+sshd
+
+# 4. Cek Username dan IP Lokal HP Anda
+echo "Username Anda: $(whoami)"
+ifconfig | grep "inet " | grep -v 127.0.0.1
+
+# 5. Cara konek dari terminal PC/Laptop:
+# ssh -p 8022 USERNAME_ANDA@IP_HP_ANDA</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAGIAN 3: GEMINI CLI -->
+        <section id="gemini" class="scroll-mt-24 space-y-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold text-xl shrink-0">
+                    3
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Instalasi & Konfigurasi Gemini CLI</h2>
+                    <p class="text-slate-400 text-sm">Jalankan asisten AI Google Gemini langsung dari terminal Termux untuk coding, debugging, atau automasi.</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-purple-950/30 border border-purple-500/20 rounded-xl p-4">
+                    <div class="text-sm text-purple-200">
+                        <strong class="text-purple-400">Prasyarat:</strong> Dapatkan API Key gratis dari <strong>Google AI Studio</strong> (<code class="text-xs bg-slate-900 px-1.5 py-0.5 rounded">aistudio.google.com</code>) atau login langsung menggunakan akun Google Anda via CLI.
+                    </div>
+                </div>
+
+                <div class="rounded-xl overflow-hidden border border-slate-700/80 bg-[#0d1117]">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-slate-800/80 border-b border-slate-700/80">
+                        <span class="text-xs font-mono text-slate-400">bash — setup-gemini-cli.sh</span>
+                        <button onclick="copyCode('code-gemini', this)" class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-700 hover:bg-purple-600 text-xs font-medium text-white transition cursor-pointer">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Salin Script</span>
+                        </button>
+                    </div>
+                    <pre class="p-4 text-sm font-mono text-slate-200 overflow-x-auto leading-relaxed"><code id="code-gemini"># 1. Install Official Google Gemini CLI secara global via npm
+npm install -g @google/gemini-cli
+
+# 2. Simpan GEMINI_API_KEY secara permanen ke ~/.bashrc
+# Ganti 'MASUKKAN_API_KEY_ANDA' dengan kunci dari Google AI Studio
+echo 'export GEMINI_API_KEY="MASUKKAN_API_KEY_ANDA"' >> ~/.bashrc
+source ~/.bashrc
+
+# 3. Jalankan Gemini CLI interaktif
+gemini
+
+# Atau tanya langsung satu baris:
+# gemini -p "Buatkan struktur folder proyek Go untuk REST API"</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAGIAN 4: GOLANG -->
+        <section id="golang" class="scroll-mt-24 space-y-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-xl shrink-0">
+                    4
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Instalasi Go (Golang) & Environment Path</h2>
+                    <p class="text-slate-400 text-sm">Kompilasi binary native ARM64 super cepat langsung di ponsel Android Anda.</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 space-y-4">
+                <div class="rounded-xl overflow-hidden border border-slate-700/80 bg-[#0d1117]">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-slate-800/80 border-b border-slate-700/80">
+                        <span class="text-xs font-mono text-slate-400">bash — setup-golang.sh</span>
+                        <button onclick="copyCode('code-go', this)" class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-700 hover:bg-cyan-600 text-xs font-medium text-white transition cursor-pointer">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Salin Script</span>
+                        </button>
+                    </div>
+                    <pre class="p-4 text-sm font-mono text-slate-200 overflow-x-auto leading-relaxed"><code id="code-go"># 1. Install paket Go terbaru dari repositori Termux
+pkg install -y golang
+
+# 2. Konfigurasi GOPATH dan PATH di ~/.bashrc agar binary go install terbaca
+cat << 'EOF' >> ~/.bashrc
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+EOF
+
+# 3. Terapkan konfigurasi environment
+source ~/.bashrc
+
+# 4. Verifikasi versi Go yang terpasang
+go version</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAGIAN 5: FIRESTORE & RTDB (FIREBASE) -->
+        <section id="firebase" class="scroll-mt-24 space-y-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xl shrink-0">
+                    5
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Integrasi Firestore & Realtime Database (RTDB)</h2>
+                    <p class="text-slate-400 text-sm">Instalasi Firebase CLI sekaligus inisialisasi proyek Go dengan Firebase Admin SDK untuk membaca & menulis ke Firestore dan RTDB.</p>
+                </div>
+            </div>
+
+            <!-- Ilustrasi SVG Alur Firebase + Go -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 space-y-6">
+                <div class="w-full overflow-hidden rounded-xl bg-slate-950 border border-slate-800 p-4">
+                    <svg viewBox="0 0 600 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Box 1: Service Account -->
+                        <rect x="10" y="25" width="150" height="80" rx="10" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+                        <text x="85" y="55" font-family="monospace" font-size="11" font-weight="bold" fill="#f8fafc" text-anchor="middle">serviceAccount.json</text>
+                        <text x="85" y="75" font-family="sans-serif" font-size="9.5" fill="#94a3b8" text-anchor="middle">Kredensial Firebase IAM</text>
+
+                        <!-- Arrow 1 -->
+                        <path d="M 160 65 L 215 65" stroke="#38bdf8" stroke-width="2"/>
+                        <polygon points="213,60 221,65 213,70" fill="#38bdf8"/>
+
+                        <!-- Box 2: Go App -->
+                        <rect x="222" y="20" width="160" height="90" rx="12" fill="#083344" stroke="#06b6d4" stroke-width="2"/>
+                        <text x="302" y="50" font-family="sans-serif" font-size="12" font-weight="bold" fill="#cffafe" text-anchor="middle">Aplikasi Go (Termux)</text>
+                        <text x="302" y="68" font-family="monospace" font-size="9" fill="#22d3ee" text-anchor="middle">firebase.google.com/go/v4</text>
+                        <text x="302" y="84" font-family="sans-serif" font-size="9" fill="#a5f3fc" text-anchor="middle">firebase-tools CLI</text>
+
+                        <!-- Arrow 2a (Firestore) -->
+                        <path d="M 382 48 L 435 35" stroke="#f59e0b" stroke-width="2"/>
+                        <!-- Arrow 2b (RTDB) -->
+                        <path d="M 382 82 L 435 95" stroke="#10b981" stroke-width="2"/>
+
+                        <!-- Box 3a: Firestore -->
+                        <rect x="438" y="10" width="150" height="48" rx="8" fill="#451a03" stroke="#f59e0b" stroke-width="1.5"/>
+                        <text x="513" y="31" font-family="sans-serif" font-size="11" font-weight="bold" fill="#fef3c7" text-anchor="middle">Cloud Firestore</text>
+                        <text x="513" y="46" font-family="sans-serif" font-size="9" fill="#fbbf24" text-anchor="middle">NoSQL Document DB</text>
+
+                        <!-- Box 3b: RTDB -->
+                        <rect x="438" y="72" width="150" height="48" rx="8" fill="#064e3b" stroke="#10b981" stroke-width="1.5"/>
+                        <text x="513" y="93" font-family="sans-serif" font-size="11" font-weight="bold" fill="#d1fae5" text-anchor="middle">Realtime Database</text>
+                        <text x="513" y="108" font-family="sans-serif" font-size="9" fill="#34d399" text-anchor="middle">JSON Tree Low-Latency</text>
+                    </svg>
+                </div>
+
+                <!-- Tab Switcher untuk Firebase CLI vs Kode Go -->
+                <div class="border-b border-slate-800 flex gap-2">
+                    <button onclick="switchFirebaseTab('cli')" id="tab-btn-cli" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-amber-500 text-amber-400 transition cursor-pointer">
+                        A. Install Firebase CLI & Init Go Project
+                    </button>
+                    <button onclick="switchFirebaseTab('go-code')" id="tab-btn-go-code" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition cursor-pointer">
+                        B. Contoh Kode Go (Firestore + RTDB)
+                    </button>
+                </div>
+
+                <!-- Tab Content A: Firebase CLI & Go Module -->
+                <div id="tab-content-cli" class="space-y-3">
+                    <div class="rounded-xl overflow-hidden border border-slate-700/80 bg-[#0d1117]">
+                        <div class="flex items-center justify-between px-4 py-2.5 bg-slate-800/80 border-b border-slate-700/80">
+                            <span class="text-xs font-mono text-slate-400">bash — setup-firebase.sh</span>
+                            <button onclick="copyCode('code-firebase-cli', this)" class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-700 hover:bg-amber-600 text-xs font-medium text-white transition cursor-pointer">
+                                <i class="fa-regular fa-copy"></i>
+                                <span>Salin Script</span>
+                            </button>
+                        </div>
+                        <pre class="p-4 text-sm font-mono text-slate-200 overflow-x-auto leading-relaxed"><code id="code-firebase-cli"># 1. Install Firebase Tools CLI secara global
+npm install -g firebase-tools
+
+# 2. Login Firebase (Gunakan --no-localhost karena di Termux HP)
+firebase login --no-localhost
+
+# 3. Buat folder proyek Go & install Firebase Admin SDK v4
+mkdir -p ~/projects/go-firebase && cd ~/projects/go-firebase
+go mod init go-firebase
+go get firebase.google.com/go/v4
+go get google.golang.org/api/option</code></pre>
+                    </div>
+                </div>
+
+                <!-- Tab Content B: Contoh main.go -->
+                <div id="tab-content-go-code" class="hidden space-y-3">
+                    <p class="text-xs text-slate-400">Simpan file kredensial dari Firebase Console (Project Settings &rarr; Service Accounts) sebagai <code class="text-amber-400">serviceAccountKey.json</code> di dalam folder proyek.</p>
+                    <div class="rounded-xl overflow-hidden border border-slate-700/80 bg-[#0d1117]">
+                        <div class="flex items-center justify-between px-4 py-2.5 bg-slate-800/80 border-b border-slate-700/80">
+                            <span class="text-xs font-mono text-slate-400">go — main.go</span>
+                            <button onclick="copyCode('code-firebase-go', this)" class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-700 hover:bg-amber-600 text-xs font-medium text-white transition cursor-pointer">
+                                <i class="fa-regular fa-copy"></i>
+                                <span>Salin Kode Go</span>
+                            </button>
+                        </div>
+                        <pre class="p-4 text-sm font-mono text-slate-200 overflow-x-auto leading-relaxed"><code id="code-firebase-go">package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	firebase "firebase.google.com/go/v4"
+	"google.golang.org/api/option"
+)
+
+func main() {
+	ctx := context.Background()
+
+	// Konfigurasi URL Realtime Database Anda
+	conf := &firebase.Config{
+		DatabaseURL: "https://PROJECT_ID_ANDA-default-rtdb.firebaseio.com",
+	}
+	opt := option.WithCredentialsFile("serviceAccountKey.json")
+
+	// Inisialisasi Firebase App
+	app, err := firebase.NewApp(ctx, conf, opt)
+	if err != nil {
+		log.Fatalf("Gagal inisialisasi Firebase: %v\n", err)
+	}
+
+	// --- 1. TULIS DATA KE CLOUD FIRESTORE ---
+	fsClient, err := app.Firestore(ctx)
+	if err != nil {
+		log.Fatalf("Gagal konek Firestore: %v\n", err)
+	}
+	defer fsClient.Close()
+
+	_, _, err = fsClient.Collection("termux_logs").Add(ctx, map[string]interface{}{
+		"device": "Android Termux",
+		"status": "Firestore Connected!",
+	})
+	if err != nil {
+		log.Fatalf("Gagal tulis Firestore: %v", err)
+	}
+	fmt.Println("✅ Berhasil menulis ke Firestore!")
+
+	// --- 2. TULIS DATA KE REALTIME DATABASE (RTDB) ---
+	rtdbClient, err := app.Database(ctx)
+	if err != nil {
+		log.Fatalf("Gagal konek RTDB: %v\n", err)
+	}
+
+	ref := rtdbClient.NewRef("server_status/termux")
+	err = ref.Set(ctx, map[string]interface{}{
+		"online": true,
+		"stack":  "Go + Gemini CLI + SSH",
+	})
+	if err != nil {
+		log.Fatalf("Gagal tulis RTDB: %v", err)
+	}
+	fmt.Println("✅ Berhasil menulis ke Realtime Database (RTDB)!")
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAGIAN 6: GENERATOR AUTO-SCRIPT ALL-IN-ONE -->
+        <section id="all-in-one" class="scroll-mt-24">
+            <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <span class="inline-block px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
+                            ⚡ Interactive Script Builder
+                        </span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white">Generator Skrip Instalasi Otomatis</h2>
+                        <p class="text-slate-400 text-sm mt-1">Pilih komponen yang ingin dipasang dan masukkan konfigurasi opsional Anda. Skrip akan otomatis dirakit.</p>
+                    </div>
+                </div>
+
+                <!-- Opsi Kustomisasi -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition">
+                        <input type="checkbox" id="chk-ssh" checked onchange="generateCustomScript()" class="w-4 h-4 accent-emerald-500 rounded">
+                        <span class="text-sm font-medium text-slate-200">OpenSSH Server</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition">
+                        <input type="checkbox" id="chk-gemini" checked onchange="generateCustomScript()" class="w-4 h-4 accent-emerald-500 rounded">
+                        <span class="text-sm font-medium text-slate-200">Gemini CLI</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition">
+                        <input type="checkbox" id="chk-go" checked onchange="generateCustomScript()" class="w-4 h-4 accent-emerald-500 rounded">
+                        <span class="text-sm font-medium text-slate-200">Go (Golang)</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition">
+                        <input type="checkbox" id="chk-firebase" checked onchange="generateCustomScript()" class="w-4 h-4 accent-emerald-500 rounded">
+                        <span class="text-sm font-medium text-slate-200">Firebase & SDK</span>
+                    </label>
+                </div>
+
+                <!-- Input API Key Opsional -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Gemini API Key (Opsional - otomatis masuk ke .bashrc)</label>
+                        <input type="text" id="input-gemini-key" oninput="generateCustomScript()" placeholder="AIzaSy..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Nama Folder Project Go + Firebase</label>
+                        <input type="text" id="input-project-name" oninput="generateCustomScript()" value="my-termux-cloud" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <!-- Hasil Generated Script -->
+                <div class="rounded-xl overflow-hidden border border-emerald-500/30 bg-[#0d1117]">
+                    <div class="flex items-center justify-between px-4 py-3 bg-slate-800/90 border-b border-slate-700/80">
+                        <span class="text-xs font-mono text-emerald-400 font-semibold">bash — install-all.sh (Siap Tempel di Termux)</span>
+                        <button onclick="copyCode('code-generated', this)" class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-lg shadow-emerald-600/20 transition cursor-pointer">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Salin Semua Script</span>
+                        </button>
+                    </div>
+                    <pre class="p-4 text-sm font-mono text-slate-200 overflow-x-auto leading-relaxed max-h-96"><code id="code-generated"></code></pre>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-950 py-10 mt-12">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+            <div class="flex items-center gap-2">
+                <span class="font-mono font-bold text-emerald-400">$_</span>
+                <span>Termux Cloud Stack Guide — SSH • Gemini CLI • Go • Firestore • RTDB</span>
+            </div>
+            <div>
+                Gunakan <code class="text-slate-400 bg-slate-900 px-2 py-0.5 rounded">termux-wake-lock</code> untuk menjaga proses background tetap aktif.
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript untuk Interaktivitas, Copy Clipboard & Generator -->
+    <script>
+        // Toggle Menu Mobile
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Tutup menu mobile saat link diklik
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+        });
+
+        // Fungsi Copy Code ke Clipboard (Menggunakan fallback execCommand agar aman di semua iframe/browser)
+        function copyCode(elementId, btnElement) {
+            const codeText = document.getElementById(elementId).innerText;
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = codeText;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('Script berhasil disalin ke clipboard!');
+                
+                // Ubah tampilan tombol sementara
+                if (btnElement) {
+                    const originalHTML = btnElement.innerHTML;
+                    btnElement.innerHTML = '<i class="fa-solid fa-check"></i> <span>Tersalin!</span>';
+                    btnElement.classList.add('bg-emerald-600');
+                    setTimeout(() => {
+                        btnElement.innerHTML = originalHTML;
+                        btnElement.classList.remove('bg-emerald-600');
+                    }, 2000);
+                }
+            } catch (err) {
+                showToast('Gagal menyalin teks, silakan salin manual.');
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // Menampilkan Notifikasi Toast
+        let toastTimeout;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            toastMsg.innerText = message;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        // Switch Tab pada Bagian Firebase
+        function switchFirebaseTab(tab) {
+            const btnCli = document.getElementById('tab-btn-cli');
+            const btnGo = document.getElementById('tab-btn-go-code');
+            const contentCli = document.getElementById('tab-content-cli');
+            const contentGo = document.getElementById('tab-content-go-code');
+
+            if (tab === 'cli') {
+                btnCli.classList.add('border-amber-500', 'text-amber-400');
+                btnCli.classList.remove('border-transparent', 'text-slate-400');
+                btnGo.classList.remove('border-amber-500', 'text-amber-400');
+                btnGo.classList.add('border-transparent', 'text-slate-400');
+                contentCli.classList.remove('hidden');
+                contentGo.classList.add('hidden');
+            } else {
+                btnGo.classList.add('border-amber-500', 'text-amber-400');
+                btnGo.classList.remove('border-transparent', 'text-slate-400');
+                btnCli.classList.remove('border-amber-500', 'text-amber-400');
+                btnCli.classList.add('border-transparent', 'text-slate-400');
+                contentGo.classList.remove('hidden');
+                contentCli.classList.add('hidden');
+            }
+        }
+
+        // Generator Custom Auto-Script
+        function generateCustomScript() {
+            const useSsh = document.getElementById('chk-ssh').checked;
+            const useGemini = document.getElementById('chk-gemini').checked;
+            const useGo = document.getElementById('chk-go').checked;
+            const useFirebase = document.getElementById('chk-firebase').checked;
+            const geminiKey = document.getElementById('input-gemini-key').value.trim();
+            const projectName = document.getElementById('input-project-name').value.trim() || 'my-termux-cloud';
+
+            let packages = ['git', 'curl', 'nano', 'openssl-tool'];
+            if (useSsh) packages.push('openssh');
+            if (useGemini || useFirebase) packages.push('nodejs-lts');
+            if (useGo) packages.push('golang');
+
+            let script = `#!/data/data/com.termux/files/usr/bin/bash\n`;
+            script += `# ==========================================\n`;
+            script += `# TERMUX AUTO-SETUP SCRIPT\n`;
+            script += `# ==========================================\n\n`;
+            script += `echo "🚀 Memperbarui sistem Termux..."\n`;
+            script += `pkg update -y && pkg upgrade -y\n`;
+            script += `pkg install -y ${packages.join(' ')}\n\n`;
+
+            if (useSsh) {
+                script += `# --- SETUP SSH ---\n`;
+                script += `echo "🔑 Mengaktifkan SSH Server (Port 8022)..."\n`;
+                script += `sshd\n`;
+                script += `echo "ℹ️  Jangan lupa jalankan 'passwd' jika belum mengatur password SSH."\n\n`;
+            }
+
+            if (useGemini) {
+                script += `# --- SETUP GEMINI CLI ---\n`;
+                script += `echo "✦ Menginstal Google Gemini CLI..."\n`;
+                script += `npm install -g @google/gemini-cli\n`;
+                if (geminiKey) {
+                    script += `echo 'export GEMINI_API_KEY="${geminiKey}"' >> ~/.bashrc\n`;
+                }
+                script += `\n`;
+            }
+
+            if (useGo) {
+                script += `# --- SETUP GOLANG PATH ---\n`;
+                script += `echo "🐹 Mengatur GOPATH..."\n`;
+                script += `grep -qxF 'export GOPATH=$HOME/go' ~/.bashrc || echo 'export GOPATH=$HOME/go' >> ~/.bashrc\n`;
+                script += `grep -qxF 'export PATH=$PATH:$GOPATH/bin' ~/.bashrc || echo 'export PATH=$PATH:$GOPATH/bin' >> ~/.bashrc\n\n`;
+            }
+
+            if (useFirebase) {
+                script += `# --- SETUP FIREBASE CLI & GO SDK (FIRESTORE + RTDB) ---\n`;
+                script += `echo "🔥 Menginstal Firebase Tools CLI..."\n`;
+                script += `npm install -g firebase-tools\n`;
+                if (useGo) {
+                    script += `mkdir -p ~/${projectName} && cd ~/${projectName}\n`;
+                    script += `go mod init ${projectName}\n`;
+                    script += `go get firebase.google.com/go/v4 google.golang.org/api/option\n`;
+                }
+                script += `\n`;
+            }
+
+            script += `source ~/.bashrc\n`;
+            script += `echo "✅ Semua instalasi selesai! Jalankan 'firebase login --no-localhost' untuk autentikasi Firebase."\n`;
+
+            document.getElementById('code-generated').innerText = script;
+        }
+
+        // Inisialisasi script saat halaman dimuat
+        window.addEventListener('DOMContentLoaded', generateCustomScript);
+    </script>
+</body>
+</html>
